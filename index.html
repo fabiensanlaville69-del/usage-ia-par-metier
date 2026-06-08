@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carte IA par métier — Campagne des Savoirs</title>
+  <meta name="description" content="Explorez les usages IA par métier — Campagne des Savoirs">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brun:      #8B4513;
+      --brun-l:    #F5EDE4;
+      --brun-m:    #C8845A;
+      --orange:    #D4621A;
+      --orange-l:  #FDF0E8;
+      --bleu:      #4A7FA5;
+      --bleu-l:    #EAF2F8;
+      --beige:     #FAF7F2;
+      --vert:      #5A8A5A;
+      --text:      #2C1A0E;
+      --text-s:    #6B4C30;
+      --bord:      rgba(139,69,19,0.15);
+      --bord-m:    rgba(139,69,19,0.25);
+      --r:         12px;
+      --r-sm:      8px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--beige);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+
+    .wrap {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      padding: 2rem 0 1.5rem;
+      text-align: center;
+    }
+
+    .logo {
+      max-width: 180px;
+      height: auto;
+      display: block;
+      margin: 0 auto 1.25rem;
+    }
+
+    .logo-fallback {
+      display: none;
+      margin: 0 auto 1.25rem;
+    }
+    .logo-fallback-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--brun-l);
+      border: 0.5px solid var(--bord-m);
+      border-radius: 99px;
+      padding: 6px 16px;
+    }
+    .logo-fallback-dot { width:10px; height:10px; border-radius:50%; background:var(--orange); }
+    .logo-fallback-text { font-size:12px; color:var(--brun); letter-spacing:.08em; text-transform:uppercase; font-weight:600; }
+
+    .headline { font-size:19px; font-weight:600; color:var(--text); line-height:1.4; margin-bottom:.5rem; }
+    .divider { width:44px; height:2px; background:var(--orange); border-radius:2px; margin:.75rem auto 1rem; }
+    .subline { font-size:13.5px; color:var(--text-s); line-height:1.5; }
+
+    /* ── DEPT GRID ── */
+    .dept-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 12px;
+      margin-bottom: 1.25rem;
+    }
+
+    .dept-card {
+      background: #fff;
+      border: 1px solid var(--bord);
+      border-radius: var(--r);
+      padding: 1.25rem .75rem 1rem;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .dept-card:hover { border-color:var(--bord-m); background:var(--brun-l); box-shadow:0 2px 8px rgba(139,69,19,.08); }
+    .dept-card.active-dir { border:2px solid var(--brun); background:var(--brun-l); }
+    .dept-card.active-com { border:2px solid var(--orange); background:var(--orange-l); }
+    .dept-card.active-adm { border:2px solid var(--bleu); background:var(--bleu-l); }
+
+    /* ── AVATARS ── */
+    /* 3 cm ≈ 113px sur 96dpi, on arrondit à 110px */
+    .avatar-row { display:flex; gap:8px; justify-content:center; }
+
+    .avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--brun-l);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--bord-m);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+
+    /* fallback initiales si image absente */
+    .avatar-fallback::after {
+      content: attr(data-initials);
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--brun);
+    }
+    .avatar-fallback img { display: none !important; }
+
+    .dept-name { font-size:14px; font-weight:700; color:var(--text); }
+    .dept-desc { font-size:12px; color:var(--text-s); line-height:1.4; }
+    .dept-badge { font-size:11px; padding:2px 10px; border-radius:99px; font-weight:600; }
+    .dept-badge.dir { background:var(--brun-l); color:var(--brun); }
+    .dept-badge.com { background:var(--orange-l); color:var(--orange); }
+    .dept-badge.adm { background:var(--bleu-l); color:var(--bleu); }
+
+    /* ── PANEL ── */
+    .panel {
+      background: #fff;
+      border: 1px solid var(--bord);
+      border-radius: var(--r);
+      padding: 1.5rem;
+    }
+
+    .ph { text-align:center; padding:2.5rem 1rem; color:var(--text-s); font-size:13.5px; }
+    .ph-icon { font-size:32px; display:block; margin-bottom:10px; }
+
+    /* ── Dept detail : hidden par défaut, affiché via classe JS ── */
+    .dept-detail { display: none; }
+    .dept-detail.visible { display: block; }
+
+    .dept-header { margin-bottom:1.125rem; padding-bottom:1rem; border-bottom:1px solid var(--bord); }
+    .dept-header-title { font-size:16px; font-weight:700; color:var(--text); margin-bottom:6px; }
+    .dept-header-sub { font-size:12px; color:var(--text-s); line-height:1.6; white-space:pre-line; }
+
+    /* ── TASKS ── */
+    .tasks-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+
+    .task-card {
+      background: var(--beige);
+      border: 1px solid var(--bord);
+      border-radius: var(--r-sm);
+      padding: .75rem .875rem;
+      cursor: pointer;
+      transition: all .15s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .task-card:hover { border-color:var(--bord-m); background:var(--brun-l); }
+    .task-card.active-dir { border:2px solid var(--brun); background:var(--brun-l); }
+    .task-card.active-com { border:2px solid var(--orange); background:var(--orange-l); }
+    .task-card.active-adm { border:2px solid var(--bleu); background:var(--bleu-l); }
+
+    .task-num { font-size:10px; color:var(--text-s); margin-bottom:3px; }
+    .task-name { font-size:12.5px; font-weight:600; color:var(--text); line-height:1.35; }
+
+    /* ── TASK DETAIL ── */
+    .task-detail { display:none; margin-top:1.125rem; border-top:1px solid var(--bord); padding-top:1.125rem; }
+    .task-detail.visible { display:block; }
+
+    .td-section { margin-bottom:.875rem; }
+    .td-label { font-size:10px; color:var(--text-s); text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; font-weight:600; }
+    .td-value { font-size:12.5px; color:var(--text); line-height:1.5; }
+    .td-value.gain { font-weight:700; color:var(--vert); }
+
+    .td-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:.875rem; }
+    .td-block { background:var(--beige); border:1px solid var(--bord); border-radius:var(--r-sm); padding:.7rem .875rem; }
+
+    .example-box { border-radius:var(--r-sm); padding:.875rem 1rem; border-left:3px solid; margin-bottom:.875rem; }
+    .example-box.dir { border-color:var(--brun); background:var(--brun-l); }
+    .example-box.com { border-color:var(--orange); background:var(--orange-l); }
+    .example-box.adm { border-color:var(--bleu); background:var(--bleu-l); }
+    .example-text { font-size:12.5px; color:var(--text); line-height:1.6; font-style:italic; }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--r-sm);
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity:.86; transform:translateY(-1px); }
+    .cta-btn.dir { background:var(--brun); color:#FFF8F2; }
+    .cta-btn.com { background:var(--orange); color:#FFF8F2; }
+    .cta-btn.adm { background:var(--bleu); color:#F0F6FA; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 540px) {
+      .dept-grid { gap:8px; }
+      .avatar { width:80px; height:80px; }
+      .avatar-fallback::after { font-size:24px; }
+      .dept-name { font-size:13px; }
+      .dept-desc { font-size:11px; }
+      .tasks-grid { grid-template-columns:1fr 1fr; gap:6px; }
+      .td-row { grid-template-columns:1fr; }
+      .headline { font-size:17px; }
+    }
+    @media (max-width:360px) {
+      .tasks-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="header">
+    <img
+      src="./assets/logo-campagne-des-savoirs.webp"
+      alt="Campagne des Savoirs"
+      class="logo"
+      loading="eager"
+      onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block';"
+    >
+    <div id="logo-fallback" class="logo-fallback">
+      <div class="logo-fallback-badge">
+        <div class="logo-fallback-dot"></div>
+        <span class="logo-fallback-text">Campagne des Savoirs</span>
+      </div>
+    </div>
+    <h1 class="headline">Explorez les usages IA par métier</h1>
+    <div class="divider"></div>
+    <p class="subline">Cliquez sur un département pour découvrir comment l'IA vous fait gagner du temps.</p>
+  </header>
+
+  <!-- DEPT CARDS -->
+  <main>
+    <div class="dept-grid">
+
+      <div class="dept-card" id="d-dir" onclick="selectDept('dir')">
+        <div class="avatar-row">
+          <div class="avatar" data-initials="D">
+            <img src="./assets/avatar-direction.webp" alt="Avatar direction" loading="lazy"
+                 onerror="this.parentElement.classList.add('avatar-fallback')">
+          </div>
+        </div>
+        <div class="dept-name">Direction</div>
+        <div class="dept-desc">Décision, pilotage, vision</div>
+        <span class="dept-badge dir">4 usages</span>
+      </div>
+
+      <div class="dept-card" id="d-com" onclick="selectDept('com')">
+        <div class="avatar-row">
+          <div class="avatar" data-initials="C">
+            <img src="./assets/avatar-commercial.webp" alt="Avatar commercial" loading="lazy"
+                 onerror="this.parentElement.classList.add('avatar-fallback')">
+          </div>
+        </div>
+        <div class="dept-name">Commercial</div>
+        <div class="dept-desc">Prospection, propositions</div>
+        <span class="dept-badge com">4 usages</span>
+      </div>
+
+      <div class="dept-card" id="d-adm" onclick="selectDept('adm')">
+        <div class="avatar-row">
+          <div class="avatar" data-initials="A">
+            <img src="./assets/avatar-administratif.webp" alt="Avatar administratif" loading="lazy"
+                 onerror="this.parentElement.classList.add('avatar-fallback')">
+          </div>
+        </div>
+        <div class="dept-name">Administratif</div>
+        <div class="dept-desc">Mails, procédures, CR</div>
+        <span class="dept-badge adm">4 usages</span>
+      </div>
+
+    </div>
+
+    <!-- PANEL -->
+    <section class="panel" id="panel">
+
+      <div class="ph" id="ph-empty">
+        <span class="ph-icon">👆</span>
+        Sélectionnez un département pour explorer ses usages IA
+      </div>
+
+      <div class="dept-detail" id="dept-detail">
+        <div class="dept-header">
+          <div class="dept-header-title" id="det-title"></div>
+          <div class="dept-header-sub" id="det-sub"></div>
+        </div>
+
+        <div class="tasks-grid" id="tasks-grid"></div>
+
+        <div class="task-detail" id="task-detail">
+          <div class="td-section">
+            <div class="td-label">Intérêt de cet usage</div>
+            <div class="td-value" id="td-interest"></div>
+          </div>
+          <div class="td-row">
+            <div class="td-block">
+              <div class="td-label">Outil conseillé</div>
+              <div class="td-value" id="td-tool"></div>
+            </div>
+            <div class="td-block">
+              <div class="td-label">Gain estimé</div>
+              <div class="td-value gain" id="td-gain"></div>
+            </div>
+          </div>
+          <div class="example-box" id="td-ex-box">
+            <div class="td-label">Exemple concret terrain</div>
+            <div class="example-text" id="td-example"></div>
+          </div>
+          <a class="cta-btn" id="td-cta" href="https://campagnedessavoirs.fr/formations" target="_blank" rel="noopener">
+            🎓 Voir la formation — Intégrer l'IA dans les pratiques professionnelles
+          </a>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ── DONNÉES ── */
+  var DATA = {
+    dir: {
+      name: 'Direction',
+      sub: "L'IA aide à gagner du temps en automatisant les tâches répétitives : synthèses de documents, préparation de comptes rendus ou organisation d'idées.\n\nElle permet de prendre du recul rapidement en structurant des informations dispersées, en comparant des options et en faisant émerger des pistes d'action.\n\nUtilisée comme assistant de travail, elle ne remplace pas la décision du dirigeant, mais réduit le temps passé à préparer, analyser et formaliser les sujets du quotidien.",
+      tasks: [
+        { name: 'Prises de décisions complexes', interest: "Cet usage permet au dirigeant de traiter des données volumineuses pour choisir des prestataires ou des solutions structurantes sans s'épuiser dans l'analyse de détails techniques : comparaison d'offres et d'audits entre autre.", tool: 'Claude / ChatGPT (analyse de documents PDF et comparaison multicritères)', gain: 'Entre 30 % et 50 % par rapport à une analyse manuelle', example: "Une entreprise de tôlerie et découpe laser de 20 personnes souhaitant changer son ERP. L'IA a été utilisée pour analyser le cahier des charges fonctionnel et comparer trois offres de prestataires afin de remplir automatiquement une grille d'analyse comparative." },
+        { name: 'Synthèse des documents pour pilotage', interest: "Cet usage permet au dirigeant de prioriser l'information, de synthétiser et résumer un corpus de documents pour en extraire les éléments principaux. Un dirigeant est souvent submergé par les e-mails, les réunions et les tâches plus ou moins urgentes.", tool: 'NotebookLM / Gemini', gain: 'Entre 30 % et 50 % sur la gestion des tâches quotidiennes de pilotage', example: "La réalisation d'une synthèse de toutes les données écrites, audios, notes, documents concernant un sujet spécifique pour préparer une réunion importante ou un projet à développer." },
+        { name: 'Études de marché et veille', interest: "Cet usage permet au dirigeant de déléguer à l'IA la compilation de centaines de sources externes pour en extraire des tendances et des données locales, afin de prendre des décisions éclairées sur de nouveaux projets.", tool: 'Perplexity / ChatGPT en mode "Deep Research"', gain: 'Entre 30 % et 50 %', example: "Un porteur de projet à Roanne souhaitant lancer une activité de vente et réparation de motos tout-terrain. L'IA a dressé une cartographie des concurrents locaux, analysé les tendances du marché dans la Loire et identifié des facteurs de différenciation pour le business plan." },
+        { name: 'Vulgarisation de documents denses (Juridique/RH)', interest: "Cet usage permet au dirigeant de valider des éléments contractuels ou réglementaires sans être un expert. L'IA extrait l'essentiel de documents juridiques longs.", tool: 'NotebookLM / ChatGPT', gain: 'Entre 30 % et 50 %', example: "La synthèse des dispositions liées au télétravail à partir de la convention collective de la métallurgie (document de 201 pages), avec mention précise des pages traitant de chaque point pour vérification." }
+      ]
+    },
+    com: {
+      name: 'Commercial',
+      sub: "L'IA aide à gagner du temps en préparant plus rapidement les mails, relances, comptes rendus de RDV et propositions commerciales.\n\nElle permet de mieux organiser les informations clients, de repérer les priorités et d'adapter son discours selon le profil ou le besoin du prospect.\n\nUtilisée comme assistant, elle ne remplace pas la relation humaine, mais réduit le temps passé sur la préparation, la rédaction et le suivi commercial.",
+      tasks: [
+        { name: 'Prospection commerciale', interest: "Cet usage permet de ne plus perdre de temps à chercher des informations éparses sur le web mais d'obtenir une synthèse structurée d'un prospect ou d'un partenaire.", tool: 'ChatGPT (via GPTs personnalisés)', gain: 'Entre 30 % et 50 % sur la phase de préparation de rendez-vous', example: "La création automatique d'une fiche de synthèse de 2 500 mots pour une entreprise cible, incluant son secteur, son chiffre d'affaires, ses partenaires clés, ses dernières actualités et ses principaux concurrents." },
+        { name: "Gestion de la relation client et e-réputation", interest: "Le commercial doit répondre aux avis et maintenir l'image de marque. L'IA permet de rédiger des réponses diplomates et personnalisées en quelques secondes.", tool: 'ChatGPT / Claude', gain: 'Entre 30 % et 50 % sur la gestion de la communication client', example: "La rédaction d'une réponse diplomate et empathique à un avis client négatif pour un restaurant. L'IA a analysé le sentiment général, extrait les points forts/faibles et proposé une solution concrète pour désamorcer la tension." },
+        { name: 'Automatisation des comptes rendus et suivi CRM', interest: "Cet usage permet de transformer une transcription orale ou des notes manuscrites en support structuré. Le temps passé à faire des comptes rendus après une réunion est très chronophage.", tool: 'Gemini / outil visio avec transcription intégrée', gain: 'Entre 30 % et 50 % sur la gestion post-RDV', example: "Un conseiller échange avec un client au sujet d'un projet d'achat d'une voiture neuve. À partir des notes prises pendant l'appel, l'IA prépare une synthèse structurée : demande du client, budget, contraintes, produits à proposer et action suivante." },
+        { name: "Préparation d'un argumentaire personnalisé", interest: "Cet usage permet de créer un argumentaire adapté au secteur du client, avec réponses aux 3 objections les plus probables, prêt avant le RDV.", tool: 'Claude / ChatGPT', gain: 'Entre 30 % et 50 %', example: "Un commercial en articles de jardin prépare un rendez-vous avec une jardinerie indépendante. Il arrive au RDV avec trois objections déjà anticipées (prix, espace, saisonnalité), avec une réponse claire pour chacune." }
+      ]
+    },
+    adm: {
+      name: 'Administratif',
+      sub: "L'IA aide à gagner du temps en préparant plus vite les mails, comptes rendus, courriers, tableaux de suivi et synthèses de documents.\n\nElle permet de classer les informations, reformuler des messages, repérer les priorités et transformer des notes brutes en documents plus clairs.\n\nUtilisée comme assistant, elle ne remplace pas la rigueur administrative, mais réduit fortement le temps passé sur la rédaction, la mise en forme et l'organisation des tâches répétitives.",
+      tasks: [
+        { name: "Gestion des mails et de l'agenda", interest: "Cet usage permet de ne plus subir le volume de mails entrants en déléguant à l'IA le tri et la synthèse des historiques d'échanges.", tool: 'Microsoft 365 Copilot (Outlook) ou Gemini (Gmail)', gain: 'Entre 30 % et 50 %', example: "La réalisation d'une synthèse chronologique de tous les échanges e-mails avec un interlocuteur précis sur les six derniers mois pour reconstituer un dossier." },
+        { name: 'Analyse de données de tableaux (Excel)', interest: "Cet usage permet de s'affranchir de la complexité des formules ou des tableaux croisés dynamiques en les générant à partir de requêtes en langage naturel.", tool: 'Claude / ChatGPT intégrés dans Excel', gain: 'Entre 30 % et 50 %', example: "Le calcul automatique de marges avec des taux variables selon le chiffre d'affaires, suivi de la création d'un tableau d'analyse des performances et de la génération de graphiques." },
+        { name: 'Rédiger une procédure interne', interest: "Cet usage permet de créer rapidement un document interne structuré et détaillé, évitant de réexpliquer la méthode à chaque nouveau collègue ou remplaçant.", tool: 'Claude / ChatGPT', gain: 'Entre 20 % et 40 %', example: "Une assistante administrative dicte à l'IA sa manière habituelle de gérer une réclamation client. L'IA transforme ce brouillon oral en procédure claire en 8 étapes, avec des exemples concrets." },
+        { name: 'Classer et reformuler des informations', interest: "Cet usage permet de reformuler en texte clair et structuré des données éparses d'un tableur ou de plusieurs documents, prêtes pour un rapport ou une présentation.", tool: 'Claude / ChatGPT', gain: 'Entre 30 % et 50 %', example: "Une responsable administrative récupère des informations dispersées dans un tableur. L'IA classe ces données par thème et les reformule en synthèse claire pour la réunion d'équipe." }
+      ]
+    }
+  };
+
+  /* ── ÉTAT ── */
+  var activeDept = null;
+  var activeTask = null;
+
+  /* ── SÉLECTION DÉPARTEMENT ── */
+  window.selectDept = function(dept) {
+    /* Reset toutes les cartes */
+    ['dir', 'com', 'adm'].forEach(function(d) {
+      document.getElementById('d-' + d).className = 'dept-card';
+    });
+    /* Activer la carte cliquée */
+    document.getElementById('d-' + dept).className = 'dept-card active-' + dept;
+
+    activeDept = dept;
+    activeTask = null;
+
+    var D = DATA[dept];
+
+    /* Cacher l'état vide, montrer le détail */
+    document.getElementById('ph-empty').style.display = 'none';
+    var detailEl = document.getElementById('dept-detail');
+    detailEl.classList.add('visible');
+
+    /* Remplir le header */
+    document.getElementById('det-title').textContent = D.name;
+    document.getElementById('det-sub').textContent = D.sub;
+
+    /* Générer les cartes tâches */
+    var grid = document.getElementById('tasks-grid');
+    grid.innerHTML = '';
+    D.tasks.forEach(function(t, i) {
+      var card = document.createElement('div');
+      card.className = 'task-card';
+      card.id = 'task-' + i;
+      card.innerHTML =
+        '<div class="task-num">Usage ' + (i + 1) + '</div>' +
+        '<div class="task-name">' + esc(t.name) + '</div>';
+      card.onclick = function() { selectTask(dept, i); };
+      grid.appendChild(card);
+    });
+
+    /* Masquer le détail tâche */
+    document.getElementById('task-detail').classList.remove('visible');
+
+    /* Scroll */
+    document.getElementById('panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  /* ── SÉLECTION TÂCHE ── */
+  window.selectTask = function(dept, idx) {
+    /* Reset cartes tâches */
+    var cards = document.querySelectorAll('.task-card');
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].className = 'task-card';
+    }
+    document.getElementById('task-' + idx).className = 'task-card active-' + dept;
+    activeTask = idx;
+
+    var t = DATA[dept].tasks[idx];
+
+    document.getElementById('td-interest').textContent = t.interest;
+    document.getElementById('td-tool').textContent = t.tool;
+    document.getElementById('td-gain').textContent = t.gain;
+    document.getElementById('td-example').textContent = t.example;
+    document.getElementById('td-ex-box').className = 'example-box ' + dept;
+    document.getElementById('td-cta').className = 'cta-btn ' + dept;
+
+    var tdEl = document.getElementById('task-detail');
+    tdEl.classList.add('visible');
+
+    /* Scroll vers le détail */
+    setTimeout(function() {
+      tdEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  };
+
+  /* ── ECHAPPEMENT HTML ── */
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+})();
+</script>
+
+</body>
+</html>
